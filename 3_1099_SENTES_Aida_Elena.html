@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eurostat Data Viewer</title>
+    <link rel="stylesheet" href="3_1099_SENTES_Aida_Elena.css" />
+  </head>
+  <body>
+    <h1>Eurostat Data Viewer</h1>
+    <div id="controls">
+      <label for="country">Country:</label>
+      <select id="country"></select>
+
+      <label for="indicator">Indicator:</label>
+      <select id="indicator">
+        <option value="PIB">GDP per Capita</option>
+        <option value="SV">Life Expectancy</option>
+        <option value="POP">Population</option>
+      </select>
+
+      <button id="updateChart">Update Chart</button>
+    </div>
+
+    <h2>Indicator Evolution Chart</h2>
+    <svg id="chart" width="800" height="400"></svg>
+    <div id="tooltip"></div>
+
+    <h2>Bubble Chart</h2>
+    <div id="bubble-controls">
+      <label for="bubbleYear">Year for Bubble Chart:</label>
+      <input type="number" id="bubbleYear" min="2000" max="2018" value="2018" />
+      <button id="updateBubbleChart">Update Bubble Chart</button>
+      <button id="stopAnimation">Stop Animation</button>
+    </div>
+    <canvas id="bubbleChart" width="800" height="400"></canvas>
+    <button id="animateChart">Animate Bubble Chart</button>
+
+    <h2>Data Table</h2>
+    <label for="year">Year:</label>
+    <input type="number" id="year" min="2000" max="2018" value="2018" />
+    <button id="updateTable">Update Table</button>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>Country</th>
+          <th>GDP</th>
+          <th>Life Expectancy</th>
+          <th>Population</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <source src="./3_1099_SENTES_Aida_Elena.js" />
+  </body>
+</html>
