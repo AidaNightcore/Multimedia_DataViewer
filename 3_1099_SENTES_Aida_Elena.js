@@ -28,26 +28,28 @@ document.addEventListener("DOMContentLoaded", () => {
     "FI",
     "SE",
   ];
-  const countrySelect = document.getElementById("country");
-  const indicatorSelect = document.getElementById("indicator");
-  const chart = document.getElementById("chart");
-  const tooltip = document.getElementById("tooltip");
-  const bubbleChart = document.getElementById("bubbleChart");
-  const bubbleYearInput = document.getElementById("bubbleYear");
-  const yearInput = document.getElementById("year");
-  const dataTable = document.getElementById("dataTable").querySelector("tbody");
+
+  const elements = {
+    countrySelect: document.getElementById("country"),
+    indicatorSelect: document.getElementById("indicator"),
+    chart: document.getElementById("chart"),
+    tooltip: document.getElementById("tooltip"),
+    bubbleChart: document.getElementById("bubbleChart"),
+    bubbleYearInput: document.getElementById("bubbleYear"),
+    yearInput: document.getElementById("year"),
+    dataTable: document.getElementById("dataTable").querySelector("tbody"),
+  };
 
   let data = [];
   let animationInterval = null;
 
   // Populate country dropdown
   countries.forEach((country) => {
-    const option = document.createElement("option");
-    option.value = country;
-    option.textContent = country;
-    countrySelect.appendChild(option);
+    const option = new Option(country, country);
+    elements.countrySelect.appendChild(option);
   });
 
+  // Fetch data from API
   const fetchData = async () => {
     const years = Array.from({ length: 19 }, (_, i) => 2000 + i).join("&time=");
     const countriesQuery = countries.join("&geo=");
@@ -62,133 +64,118 @@ document.addEventListener("DOMContentLoaded", () => {
       const responses = await Promise.all(
         urls.map((url) => fetch(url).then((res) => res.json()))
       );
-      const processAPIData = (responses) => {
-        const [popData, svData, gdpData] = responses;
-        const dimensions = popData.dimension;
-        const geo = dimensions.geo.category.index;
-        const time = dimensions.time.category.index;
 
-        const parseData = (data, indicator) => {
-          const values = data.value;
-          const parsed = [];
+      data = responses.flatMap((response, index) => {
+        const { geo, time } = response.dimension;
+        const values = response.value;
+        const indicators = ["POP", "SV", "PIB"];
 
-          Object.keys(geo).forEach((country, countryIndex) => {
-            Object.keys(time).forEach((year, yearIndex) => {
-              const valueIndex =
-                yearIndex * Object.keys(geo).length + countryIndex;
-              if (values[valueIndex] != null) {
-                parsed.push({
-                  tara: country,
-                  an: parseInt(year),
-                  indicator: indicator,
-                  valoare: values[valueIndex],
-                });
-              }
-            });
-          });
+        return Object.keys(geo.category.index).flatMap((country, cIdx) => {
+          return Object.keys(time.category.index)
+            .map((year, tIdx) => {
+              const valueIdx =
+                tIdx * Object.keys(geo.category.index).length + cIdx;
+              const value = values[valueIdx];
+              return value != null
+                ? { country, year: +year, indicator: indicators[index], value }
+                : null;
+            })
+            .filter(Boolean);
+        });
+      });
 
-          return parsed;
-        };
-
-        return [
-          ...parseData(popData, "POP"),
-          ...parseData(svData, "SV"),
-          ...parseData(gdpData, "PIB"),
-        ];
-      };
-
-      data = processAPIData(responses);
       console.log("Data loaded successfully.", data);
     } catch (error) {
       console.error("Error fetching data from API:", error);
     }
   };
 
+  // Draw line chart
   const drawChart = () => {
-    const country = countrySelect.value;
-    const indicator = indicatorSelect.value;
+    const { countrySelect, indicatorSelect, chart, tooltip } = elements;
     const filteredData = data.filter(
-      (item) => item.tara === country && item.indicator === indicator
+      (d) =>
+        d.country === countrySelect.value &&
+        d.indicator === indicatorSelect.value
     );
 
-    const years = filteredData.map((item) => item.an);
-    const values = filteredData.map((item) => item.valoare);
+    const years = filteredData.map((d) => d.year);
+    const values = filteredData.map((d) => d.value);
 
     chart.innerHTML = "";
     const svgNS = "http://www.w3.org/2000/svg";
+    const maxVal = Math.max(...values);
 
-    const max = Math.max(...values);
-    years.forEach((year, index) => {
-      const x = (index / years.length) * 800;
-      const y = 400 - (values[index] / max) * 400;
-
+    years.forEach((year, i) => {
       const circle = document.createElementNS(svgNS, "circle");
-      circle.setAttribute("cx", x);
-      circle.setAttribute("cy", y);
+      circle.setAttribute("cx", (i / years.length) * 800);
+      circle.setAttribute("cy", 400 - (values[i] / maxVal) * 400);
       circle.setAttribute("r", 5);
       circle.setAttribute("fill", "blue");
-      circle.addEventListener("mousemove", (event) => {
+
+      circle.addEventListener("mousemove", (e) => {
         tooltip.style.display = "block";
-        tooltip.style.left = event.pageX + 10 + "px";
-        tooltip.style.top = event.pageY - 20 + "px";
-        tooltip.textContent = `Year: ${year}, Value: ${values[index]}`;
+        tooltip.style.left = e.pageX + 10 + "px";
+        tooltip.style.top = e.pageY - 20 + "px";
+        tooltip.textContent = `Year: ${year}, Value: ${values[i]}`;
       });
-      circle.addEventListener("mouseleave", () => {
-        tooltip.style.display = "none";
-      });
+
+      circle.addEventListener(
+        "mouseleave",
+        () => (tooltip.style.display = "none")
+      );
+
       chart.appendChild(circle);
     });
   };
 
+  // Update table with data
   const updateTable = () => {
-    const year = parseInt(yearInput.value);
-    dataTable.innerHTML = "";
+    const { yearInput, dataTable } = elements;
+    const year = +yearInput.value;
+    const filteredData = data.filter((d) => d.year === year);
 
-    const filteredData = data.filter((item) => item.an === year);
-    const columns = ["PIB", "SV", "POP"];
-
-    const columnAverages = columns.map((indicator) => {
+    const indicators = ["PIB", "SV", "POP"];
+    const averages = indicators.map((ind) => {
       const values = filteredData
-        .filter((item) => item.indicator === indicator)
-        .map((item) => item.valoare);
+        .filter((d) => d.indicator === ind)
+        .map((d) => d.value);
       return values.length
         ? values.reduce((a, b) => a + b, 0) / values.length
         : 0;
     });
 
+    dataTable.innerHTML = "";
+
     countries.forEach((country) => {
       const row = document.createElement("tr");
+      const countryCell = document.createElement("td");
+      countryCell.textContent = country;
+      row.appendChild(countryCell);
 
-      const nameCell = document.createElement("td");
-      nameCell.textContent = country;
-      row.appendChild(nameCell);
-
-      columns.forEach((indicator, index) => {
+      indicators.forEach((ind, idx) => {
         const value =
-          filteredData.find(
-            (item) => item.tara === country && item.indicator === indicator
-          )?.valoare || "N/A";
+          filteredData.find((d) => d.country === country && d.indicator === ind)
+            ?.value || "N/A";
         const cell = document.createElement("td");
         cell.textContent = value;
 
         if (value !== "N/A") {
-          const deviation = value - columnAverages[index];
+          const deviation = value - averages[idx];
           const maxDeviation = Math.max(
             ...filteredData
-              .filter((item) => item.indicator === indicator)
-              .map((item) => Math.abs(item.valoare - columnAverages[index]))
+              .filter((d) => d.indicator === ind)
+              .map((d) => Math.abs(d.value - averages[idx]))
           );
 
-          const colorIntensity = Math.min(
+          const intensity = Math.min(
             255,
             Math.floor((deviation / maxDeviation) * 128 + 128)
           );
-          const color =
+          cell.style.backgroundColor =
             deviation >= 0
-              ? `rgb(${255 - colorIntensity}, 255, ${255 - colorIntensity})`
-              : `rgb(255, ${colorIntensity}, ${colorIntensity})`;
-
-          cell.style.backgroundColor = color;
+              ? `rgb(${255 - intensity}, 255, ${255 - intensity})`
+              : `rgb(255, ${intensity}, ${intensity})`;
         }
 
         row.appendChild(cell);
@@ -198,37 +185,51 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  const drawStaticBubbleChart = (year) => {
-    clearInterval(animationInterval);
+  // Draw bubble chart
+  const drawBubbleChart = (year) => {
+    const { bubbleChart } = elements;
     const ctx = bubbleChart.getContext("2d");
     ctx.clearRect(0, 0, bubbleChart.width, bubbleChart.height);
 
-    const filteredData = data.filter((item) => item.an === year);
+    const filteredData = data.filter((d) => d.year === year);
 
-    filteredData.forEach((item) => {
-      const x = Math.random() * 800;
-      const y = Math.random() * 400;
-      const radius = item.indicator === "POP" ? item.valoare / 10000000 : 10;
+    const maxValues = {
+      POP: Math.max(
+        ...filteredData.filter((d) => d.indicator === "POP").map((d) => d.value)
+      ),
+      PIB: Math.max(
+        ...filteredData.filter((d) => d.indicator === "PIB").map((d) => d.value)
+      ),
+      SV: Math.max(
+        ...filteredData.filter((d) => d.indicator === "SV").map((d) => d.value)
+      ),
+    };
+
+    filteredData.forEach((d) => {
+      const x = Math.random() * bubbleChart.width;
+      const y = Math.random() * bubbleChart.height;
+      const radius = (d.value / maxValues[d.indicator]) * 30; // Scale radius by value relative to max value
 
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fillStyle =
-        item.indicator === "PIB"
-          ? "rgba(0, 0, 255, 0.5)"
-          : item.indicator === "SV"
-          ? "rgba(0, 255, 0, 0.5)"
-          : "rgba(255, 0, 0, 0.5)";
+        d.indicator === "PIB"
+          ? "rgba(112, 169, 188, 0.5)"
+          : d.indicator === "SV"
+          ? "rgba(147, 158, 114, 0.5)"
+          : "rgba(214, 211, 204, 0.5)";
       ctx.fill();
     });
   };
 
+  // Animate bubble chart
   const animateBubbleChart = () => {
     clearInterval(animationInterval);
+    const { bubbleChart } = elements;
     const ctx = bubbleChart.getContext("2d");
-    ctx.clearRect(0, 0, bubbleChart.width, bubbleChart.height);
 
+    const years = [...new Set(data.map((d) => d.year))].sort();
     let yearIndex = 0;
-    const years = [...new Set(data.map((item) => item.an))].sort();
 
     animationInterval = setInterval(() => {
       if (yearIndex >= years.length) {
@@ -236,33 +237,15 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const year = years[yearIndex++];
-      ctx.clearRect(0, 0, bubbleChart.width, bubbleChart.height);
-
-      const filteredData = data.filter((item) => item.an === year);
-      filteredData.forEach((item) => {
-        const x = Math.random() * 800;
-        const y = Math.random() * 400;
-        const radius = item.indicator === "POP" ? item.valoare / 10000000 : 10;
-
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle =
-          item.indicator === "PIB"
-            ? "rgba(0, 0, 255, 0.5)"
-            : item.indicator === "SV"
-            ? "rgba(0, 255, 0, 0.5)"
-            : "rgba(255, 0, 0, 0.5)";
-        ctx.fill();
-      });
+      drawBubbleChart(years[yearIndex++]);
     }, 1000);
   };
 
+  // Event listeners
   document.getElementById("updateChart").addEventListener("click", drawChart);
   document.getElementById("updateTable").addEventListener("click", updateTable);
   document.getElementById("updateBubbleChart").addEventListener("click", () => {
-    const year = parseInt(bubbleYearInput.value);
-    drawStaticBubbleChart(year);
+    drawBubbleChart(+elements.bubbleYearInput.value);
   });
   document
     .getElementById("animateChart")
