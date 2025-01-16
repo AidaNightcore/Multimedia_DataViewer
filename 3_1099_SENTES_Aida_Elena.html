@@ -4,53 +4,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Eurostat Data Viewer</title>
-    <link rel="stylesheet" href="3_1099_SENTES_Aida_Elena.css" />
+    <link rel="stylesheet" href="./3_1099_SENTES_AIDA_ELENA.css" />
   </head>
   <body>
     <h1>Eurostat Data Viewer</h1>
     <div id="controls">
-      <label for="country">Country:</label>
+      <label for="country">Tara:</label>
       <select id="country"></select>
 
       <label for="indicator">Indicator:</label>
       <select id="indicator">
-        <option value="PIB">GDP per Capita</option>
-        <option value="SV">Life Expectancy</option>
-        <option value="POP">Population</option>
+        <option value="PIB">GDP</option>
+        <option value="SV">Speranta de viata</option>
+        <option value="POP">Populatie</option>
       </select>
 
       <button id="updateChart">Update Chart</button>
     </div>
 
     <h2>Indicator Evolution Chart</h2>
-    <svg id="chart" width="800" height="400"></svg>
+    <svg id="chart" width="1000" height="500"></svg>
     <div id="tooltip"></div>
 
     <h2>Bubble Chart</h2>
     <div id="bubble-controls">
-      <label for="bubbleYear">Year for Bubble Chart:</label>
+      <label for="bubbleYear">An pentru Bubble Chart:</label>
       <input type="number" id="bubbleYear" min="2000" max="2018" value="2018" />
       <button id="updateBubbleChart">Update Bubble Chart</button>
-      <button id="stopAnimation">Stop Animation</button>
+      <button id="stopAnimation">Stop Animatie</button>
     </div>
-    <canvas id="bubbleChart" width="800" height="400"></canvas>
-    <button id="animateChart">Animate Bubble Chart</button>
+    <canvas id="bubbleChart" width="1000" height="500"></canvas>
+    <button id="animateChart">Animatie Bubble Chart</button>
 
-    <h2>Data Table</h2>
+    <h2>Tabel de date</h2>
     <label for="year">Year:</label>
     <input type="number" id="year" min="2000" max="2018" value="2018" />
-    <button id="updateTable">Update Table</button>
+    <button id="updateTable">Update tabel</button>
     <table id="dataTable">
       <thead>
         <tr>
-          <th>Country</th>
+          <th>Tara</th>
           <th>GDP</th>
-          <th>Life Expectancy</th>
-          <th>Population</th>
+          <th>Speranta de viata</th>
+          <th>Populatie</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-    <script src="./3_1099_SENTES_Aida_Elena.js"></script>
+    <script src="./3_1099_SENTES_AIDA_ELENA.js"></script>
   </body>
 </html>
